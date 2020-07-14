@@ -30,8 +30,8 @@ public final class Cheque extends JavaPlugin {
             String m;
             int money;
             Player p;
-            if (args[0].equals("o")) {
-                //open
+            if (args.length == 0) {
+                 sender.sendMessage("/che <金額> : 所持金を消費して小切手を作成します" + "\n" + "/che o : 小切手を開封して現金を引き出します");
             }
             if (sender.isOp()) {
                 if (args[0].equals("make")) {
@@ -58,43 +58,58 @@ public final class Cheque extends JavaPlugin {
                 sender.sendMessage("/che make <金額> : 無から金を生み出します" + "\n" + "悪用したらバレるで");
             }
             if (args[0].equals("o")) {
+                p = (Player) sender;
                 ItemStack item = p.getInventory().getItemInMainHand();
                 if (item.getType() == Material.STONE) {
+                    boolean res2 = true;
+                    String lore = "null";
                     try {
-                        String lore = item.getLore().get(1);
-                        boolean result_2 = true;
-                        for (int i = 0; i < lore.length(); i++) {
-                            if (Character.isDigit(lore.charAt(i))) {
-                                continue;
-                            } else {
-                                result_2 = false;
-                                break;
-                            }
-                        }
-                    } catch (知るかボケ lore) {
+                        lore = item.getLore().get(1);
+                    } catch (NullPointerException | IndexOutOfBoundsException e) {
                         sender.sendMessage("あなたが手に持っているのは小切手ではありません");
+                        return true;
+                    }
+                    for (int i = 0; i < lore.length(); i++) {
+                        if (Character.isDigit(lore.charAt(i))) {
+                            continue;
+                        } else {
+                            res2 = false;
+                            break;
+                        }
+                    }
+                    if (res2) {
+                        Player z = (Player) sender;
+                        p.getInventory().getItemInMainHand().setAmount(p.getInventory().getItemInMainHand().getAmount()-1);
+                        vault.deposit(z.getUniqueId(),Integer.parseInt(lore));
+                        sender.sendMessage("小切手を換金しました");
+                        System.out.println( "換金" + lore);
+                        return true;
                     }
                 }
+                sender.sendMessage("あなたが手に持っているのは小切手ではありません");
             }
-            boolean res2 = true;
+            boolean res3 = true;
             for (int i = 0; i < args[0].length(); i++) {
                 if (Character.isDigit(args[0].charAt(i))) {
                     continue;
                 } else {
-                    res2 = false;
+                    res3 = false;
                     break;
                 }
             }
-            if (res2) {
+            if (res3) {
                 money = Integer.parseInt(args[0]);
-                if (所持金 > money){
+                if (vault.getBalance(sender.getUniqueId()) > money) {
                     p = (Player) sender;
                     s = "normal";
-                    //所持金抜き取り
                     m = String.valueOf(money);
+                    //所持金抜き取り
+                    vault.withdraw(sender.getUniqueId(),money);
                     cheque(m,p,s);
+                    sender.sendMessage("小切手を作成しました");
                     return true;
                 }
+                sender.sendMessage("所持金が足りません");
             }
         }
         return true;
@@ -103,7 +118,7 @@ public final class Cheque extends JavaPlugin {
     public void cheque(String m , Player p, String s) {
         ItemStack item = new ItemStack(Material.STONE);
         ItemMeta meta = item.getItemMeta();
-        meta.setLore(Arrays.asList(p.getName(),m + ""));//Loreセット
+        meta.setLore(Arrays.asList(p.getName(),m));//Loreセット
         meta.setDisplayName("小切手");//アイテム名セット
         item.setItemMeta(meta);
         p.getInventory().addItem(item);//アイテムを渡す
